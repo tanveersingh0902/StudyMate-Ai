@@ -1,0 +1,19 @@
+﻿# Virtual environment
+venv3/
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Auto-generated vector store
+vector_store/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# VS Code settings
+.vscode/

@@ -1,0 +1,27 @@
+# Core LangChain + LangGraph
+langchain==0.3.7
+langchain-community==0.3.7
+langchain-groq==0.2.1
+langchain-huggingface==0.1.2
+langgraph==0.2.38
+
+# FIX: langchain-google-genai was missing — required for Gemini LLM support
+langchain-google-genai==2.0.7
+
+# Vector Store
+faiss-cpu==1.12.0
+
+# Embeddings
+sentence-transformers==3.3.0
+
+# Document Loaders
+pypdf==5.0.1
+docx2txt==0.8
+
+# UI
+streamlit==1.40.0
+
+# Utilities
+python-dotenv==1.0.1
+tiktoken==0.8.0
+pydantic==2.9.2

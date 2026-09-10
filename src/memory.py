@@ -131,7 +131,6 @@ class ConversationMemory:
 
     def _compress(self):
         """Summarise the oldest half of history to save token space."""
-        from langchain_core.messages import HumanMessage as HM
         half = len(self._history) // 2
         old_turns = self._history[:half]
         self._history = self._history[half:]

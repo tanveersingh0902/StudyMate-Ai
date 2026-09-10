@@ -47,7 +47,8 @@ class VectorStore:
         else:
             self._store.merge_from(new_store)
 
-        return len(self._store.docstore._dict)
+        # Count documents by iterating over the index-to-docstore-id mapping
+        return self._store.index.ntotal
 
     def clear(self):
         """Wipe the in-memory index."""

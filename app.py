@@ -18,10 +18,6 @@ Features:
 
 """
 
-
-import logging
-import traceback
-
 import streamlit as st
 from langchain_core.messages import HumanMessage
 
@@ -31,8 +27,6 @@ from src.vector_store import VectorStore
 from src.graph import build_graph, StudyState
 from src.memory import ConversationMemory, StudentProfile
 from src.llm_factory import get_provider_name
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 
 # ── Page Config ───────────────────────────────────────────────────────────────
@@ -107,13 +101,13 @@ with st.sidebar:
         if api_key:
             Config.GROQ_API_KEY = api_key
 
-        # LLaMA models hosted on Groq's LPU hardware — these are the
-        # current production model IDs on Groq.
+        # GPT-OSS models are OpenAI's open-weight models hosted on Groq's
+        # LPU hardware — these are the current production model IDs on Groq.
         groq_model = st.selectbox(
             "Groq Model",
             [
-                "llama-3.3-70b-versatile",  # flagship — 70B params
-                "llama-3.1-8b-instant",     # faster/cheaper — 8B params
+                "openai/gpt-oss-120b",   # flagship — 120B params, ~500 t/s
+                "openai/gpt-oss-20b",    # faster/cheaper — 20B params, ~1000 t/s
             ],
             index=0,
         )
@@ -130,12 +124,13 @@ with st.sidebar:
         if api_key:
             Config.GEMINI_API_KEY = api_key
 
-        # Stable Gemini Flash endpoints (Google AI docs)
+        # Confirmed stable Gemini 3.x Flash endpoints (Google AI docs, Aug 2026)
         gemini_model = st.selectbox(
             "Gemini Model",
             [
-                "gemini-2.0-flash",   # latest — fast multimodal
-                "gemini-1.5-flash",   # previous gen — high throughput
+                "gemini-3.7-flash",   # latest — best coding & agentic workflows
+                "gemini-3.6-flash",   # previous gen — fast multimodal
+                "gemini-3.5-flash",   # legacy — high-throughput baseline
             ],
             index=0,
         )
@@ -378,7 +373,6 @@ with col_chat:
                             st.session_state.hitl_pending = True
 
         except Exception as e:
-            logging.exception("Agent execution failed")
             st.error(f"⛔ Agent error: {e}")
             st.stop()
 

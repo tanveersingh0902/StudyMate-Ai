@@ -46,7 +46,7 @@ RETRIEVER (FAISS vector search on your uploaded study material)
 |-----------|-----------|
 | Agent Orchestration | LangGraph |
 | LLM Framework | LangChain |
-| Language Models | Groq LLaMA-3.3-70B **or** Google Gemini-2.0-Flash |
+| Language Models | Groq LLaMA-3.3-70B **or** Google Gemini-1.5-Flash |
 | Embeddings | HuggingFace sentence-transformers (local, free) |
 | Vector Store | FAISS |
 | UI | Streamlit |
@@ -56,9 +56,8 @@ RETRIEVER (FAISS vector search on your uploaded study material)
 
 ## ⚙️ Setup
 
-### 1. Clone the project
+### 1. Clone / download the project
 ```bash
-git clone https://github.com/YOUR_USERNAME/studymate-ai.git
 cd studymate-ai
 ```
 
@@ -102,49 +101,7 @@ streamlit run app.py
 
 ---
 
-## 🚀 Deployment
 
-### Option 1: Streamlit Community Cloud (Easiest)
-
-1. Push your code to a **public GitHub repo**
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Click **"New app"** → select your repo → set main file to `app.py`
-4. In **Advanced settings → Secrets**, add your API keys:
-   ```toml
-   GROQ_API_KEY = "gsk_your_actual_key_here"
-   # or
-   GEMINI_API_KEY = "your_actual_key_here"
-   ```
-5. Click **Deploy** 🎉
-
-### Option 2: Docker
-
-```bash
-# Build
-docker build -t studymate-ai .
-
-# Run (pass API key as env var)
-docker run -p 8501:8501 \
-  -e GROQ_API_KEY="gsk_your_key_here" \
-  studymate-ai
-```
-
-Then open http://localhost:8501
-
-### Option 3: Render / Railway
-
-1. Connect your GitHub repo
-2. Set **Build Command**: `pip install -r requirements.txt`
-3. Set **Start Command**: `streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true`
-4. Add environment variables: `GROQ_API_KEY` or `GEMINI_API_KEY`
-
-### Option 4: Heroku
-
-```bash
-heroku create studymate-ai
-heroku config:set GROQ_API_KEY="gsk_your_key_here"
-git push heroku main
-```
 
 ---
 
@@ -153,14 +110,8 @@ git push heroku main
 ```
 studymate-ai/
 ├── app.py                    # Streamlit UI
-├── requirements.txt          # Python dependencies
-├── .env.example              # Environment template (safe to commit)
-├── .streamlit/
-│   └── config.toml           # Streamlit server config
-├── Dockerfile                # Docker deployment
-├── Procfile                  # Heroku/Railway deployment
-├── runtime.txt               # Python version for PaaS
-├── packages.txt              # System deps for Streamlit Cloud
+├── requirements.txt
+├── .env.example
 ├── README.md
 └── src/
     ├── __init__.py
@@ -173,18 +124,3 @@ studymate-ai/
 ```
 
 ---
-
-## 🔑 API Keys
-
-| Provider | Free Tier | Get Key |
-|----------|-----------|---------|
-| **Groq** | ✅ Generous free tier | [console.groq.com](https://console.groq.com) |
-| **Gemini** | ✅ Free tier available | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
-
-You only need **one** provider — pick whichever you prefer. You can switch between them in the sidebar at runtime.
-
----
-
-<div style='text-align:center; color:gray; font-size:12px'>
-NIELIT Agentic AI Internship Project · StudyMate AI · Multi-Agent Academic Assistant
-</div>

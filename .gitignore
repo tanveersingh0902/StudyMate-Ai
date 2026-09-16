@@ -1,6 +1,7 @@
-# Virtual environment
+﻿# Virtual environment
 venv3/
 venv/
+.env/
 
 # Python cache
 __pycache__/
@@ -17,8 +18,5 @@ Thumbs.db
 # VS Code settings
 .vscode/
 
-# Environment variables (contains API keys — never commit!)
+# Environment variables (contains API keys - never commit!)
 .env
-
-# Streamlit secrets (for Streamlit Community Cloud — never commit!)
-.streamlit/secrets.toml

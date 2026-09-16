@@ -1,0 +1,33 @@
+# Ignore everything by default
+*
+
+# But DO include these deployment & Docker files
+!.dockerignore
+!Dockerfile
+!Procfile
+!runtime.txt
+!packages.txt
+!requirements.txt
+!.env.example
+!README.md
+!app.py
+!src/
+!src/**
+!.streamlit/
+!.streamlit/**
+!.devcontainer/
+!.devcontainer/**
+
+# Never include these
+.env
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+venv/
+venv3/
+vector_store/
+.DS_Store
+Thumbs.db
+

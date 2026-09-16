@@ -27,6 +27,7 @@ Architecture (8 agents):
 """
 
 import json
+import logging
 from typing import TypedDict, Annotated, List, Optional
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langchain.schema import Document
@@ -36,6 +37,8 @@ from langgraph.graph.message import add_messages
 from .config import Config
 from .vector_store import VectorStore
 from .llm_factory import call_llm
+
+logger = logging.getLogger(__name__)
 
 
 # ── State ─────────────────────────────────────────────────────────────────────
@@ -77,12 +80,22 @@ Classify the student's request into EXACTLY ONE of these task types:
 
 Respond with ONLY the task type word. No explanation."""
 
-    task = call_llm(system, f"Classify this student request:\n\n{state['query']}").lower().strip()
+    try:
+        task = call_llm(system, f"Classify this student request:\n\n{state['query']}").lower().strip()
+    except Exception as e:
+        logger.warning(f"Task router LLM call failed: {e}")
+        task = "qa"  # Safe fallback
 
     # Validate and fallback to 'qa' if unrecognised
     valid_tasks = {"qa", "quiz", "plan", "explain", "evaluate"}
     if task not in valid_tasks:
-        task = "qa"
+        # Try to extract a valid task from the response (LLM may add extra text)
+        for valid in valid_tasks:
+            if valid in task:
+                task = valid
+                break
+        else:
+            task = "qa"
 
     return {
         "task_type": task,
@@ -108,7 +121,14 @@ Example:
 2. Steps in light-dependent reactions
 3. Role of chlorophyll in energy capture"""
 
-    plan_text = call_llm(system, f"Break down this study query:\n\n{query}")
+    try:
+        plan_text = call_llm(system, f"Break down this study query:\n\n{query}")
+    except Exception as e:
+        logger.warning(f"Planner LLM call failed: {e}")
+        return {
+            "research_plan": [query],
+            "messages": [AIMessage(content=f"📋 Using original query for search (planner unavailable).")],
+        }
 
     lines = [
         line.strip().lstrip("0123456789.-) ").strip()
@@ -138,8 +158,11 @@ def retriever_node(state: StudyState, vector_store: VectorStore) -> dict:
     all_docs: List[Document] = []
 
     for sub_query in plan:
-        docs = vector_store.similarity_search(sub_query, k=Config.MAX_RETRIEVAL_DOCS)
-        all_docs.extend(docs)
+        try:
+            docs = vector_store.similarity_search(sub_query, k=Config.MAX_RETRIEVAL_DOCS)
+            all_docs.extend(docs)
+        except Exception as e:
+            logger.warning(f"Retrieval failed for sub-query '{sub_query[:50]}': {e}")
 
     # Deduplicate by first 100 chars of content
     seen, unique_docs = set(), []
@@ -188,7 +211,11 @@ Student profile context:
 If the answer is not in the study material, say so clearly and provide
 what general knowledge you can."""
 
-    answer = call_llm(system, f"Student Question: {query}\n\nStudy Material:\n{context}")
+    try:
+        answer = call_llm(system, f"Student Question: {query}\n\nStudy Material:\n{context}")
+    except Exception as e:
+        logger.error(f"QA Agent LLM call failed: {e}")
+        answer = f"⚠️ I encountered an error while processing your question. Please try again.\n\nError: {e}"
 
     return {
         "analysis": answer,
@@ -228,8 +255,12 @@ Structure your explanation:
 4. **Key Points to Remember** — Bullet list
 5. **Common Misconceptions** — What students often get wrong"""
 
-    explanation = call_llm(system,
-                           f"Explain this concept in detail:\n{query}\n\nFrom this study material:\n{context}")
+    try:
+        explanation = call_llm(system,
+                               f"Explain this concept in detail:\n{query}\n\nFrom this study material:\n{context}")
+    except Exception as e:
+        logger.error(f"Explain Agent LLM call failed: {e}")
+        explanation = f"⚠️ I encountered an error while generating the explanation. Please try again.\n\nError: {e}"
 
     return {
         "explanation": explanation,
@@ -274,12 +305,20 @@ Return ONLY valid JSON (no markdown, no explanation) in this exact format:
   ]
 }}"""
 
-    quiz_raw = call_llm(system, f"Generate a quiz about:\n{query}\n\nStudy Material:\n{context}")
+    try:
+        quiz_raw = call_llm(system, f"Generate a quiz about:\n{query}\n\nStudy Material:\n{context}")
+    except Exception as e:
+        logger.error(f"Quiz Agent LLM call failed: {e}")
+        return {
+            "quiz_questions": "{}",
+            "analysis": f"⚠️ I couldn't generate the quiz due to an error. Please try again.\n\nError: {e}",
+            "messages": [AIMessage(content=f"⚠️ Quiz generation failed: {e}")],
+        }
 
     # Strip markdown fences the model might add
     quiz_clean = quiz_raw.replace("```json", "").replace("```", "").strip()
 
-    # FIX: on parse failure preserve the raw text so the student sees something
+    # Try to parse JSON; on failure preserve the raw text so the student sees something
     try:
         quiz_data = json.loads(quiz_clean)
         display = _format_quiz_display(quiz_data)
@@ -289,7 +328,7 @@ Return ONLY valid JSON (no markdown, no explanation) in this exact format:
             "⚠️ The quiz couldn't be formatted automatically. Here are the raw questions:\n\n"
             + quiz_raw
         )
-        stored_json = "{}"
+        stored_json = quiz_raw  # Preserve raw text instead of empty JSON
 
     return {
         "quiz_questions": stored_json,
@@ -302,7 +341,7 @@ def _format_quiz_display(quiz_data: dict) -> str:
     """Convert quiz JSON into a readable markdown string."""
     lines = [f"## 📝 Quiz: {quiz_data.get('topic', 'Study Quiz')}\n"]
     for i, q in enumerate(quiz_data.get("questions", []), 1):
-        # FIX: guard against missing keys to avoid KeyError crashes
+        # Guard against missing keys to avoid KeyError crashes
         question_text = q.get("question", f"Question {i}")
         lines.append(f"**Q{i}. {question_text}**")
         for letter, text in q.get("options", {}).items():
@@ -347,8 +386,12 @@ Structure the plan as:
 - Highlight weak areas that need extra attention
 - End with exam preparation tips"""
 
-    plan = call_llm(system,
-                    f"Create a study plan for:\n{query}\n\nMaterial available:\n{chr(10).join(docs[:2]) if docs else 'General topics'}")
+    try:
+        plan = call_llm(system,
+                        f"Create a study plan for:\n{query}\n\nMaterial available:\n{chr(10).join(docs[:2]) if docs else 'General topics'}")
+    except Exception as e:
+        logger.error(f"Plan Agent LLM call failed: {e}")
+        plan = f"⚠️ I couldn't generate the study plan due to an error. Please try again.\n\nError: {e}"
 
     hitl_notice = (
         "\n\n---\n"
@@ -356,7 +399,7 @@ Structure the plan as:
         "Click **Approve Plan** above or describe changes needed."
     )
 
-    # FIX: set hitl_approved=False explicitly so app.py HITL detector fires
+    # Set hitl_approved=False explicitly so app.py HITL detector fires
     return {
         "study_plan": plan,
         "hitl_approved": False,
@@ -392,8 +435,12 @@ Evaluate at {difficulty} level and provide:
 
 Be encouraging but honest. Help the student learn from their mistakes."""
 
-    evaluation = call_llm(system,
-                          f"Evaluate this student answer:\n\n{query}\n\nReference material:\n{context}")
+    try:
+        evaluation = call_llm(system,
+                              f"Evaluate this student answer:\n\n{query}\n\nReference material:\n{context}")
+    except Exception as e:
+        logger.error(f"Evaluate Agent LLM call failed: {e}")
+        evaluation = f"⚠️ I couldn't evaluate your answer due to an error. Please try again.\n\nError: {e}"
 
     return {
         "evaluation_result": evaluation,
@@ -423,10 +470,19 @@ FAIL: <specific gap or issue that needs to be addressed>
 
 Nothing else."""
 
-    verdict = call_llm(system,
-                       f"Question: {query}\n\nSource Material:\n{docs}\n\nResponse to review:\n{analysis}")
+    try:
+        verdict = call_llm(system,
+                           f"Question: {query}\n\nSource Material:\n{docs}\n\nResponse to review:\n{analysis}")
+    except Exception as e:
+        logger.warning(f"Critic LLM call failed: {e}")
+        # On critic failure, pass by default to avoid infinite loops
+        return {
+            "critique_passed": True,
+            "iteration": state.get("iteration", 0) + 1,
+            "messages": [AIMessage(content="✅ **Quality Check:** Passed (critic unavailable)")],
+        }
 
-    # FIX: strip and upper-case to avoid false FAILs from minor whitespace/casing
+    # Strip and upper-case to avoid false FAILs from minor whitespace/casing
     passed = verdict.strip().upper().startswith("PASS")
 
     return {
@@ -448,9 +504,7 @@ def synthesizer_node(state: StudyState) -> dict:
     query = state["query"]
     task_type = state.get("task_type", "qa")
 
-    # FIX: read task-specific fields first; fall back to analysis
-    # The old code only read `analysis` — which could be empty if the
-    # task-specific field (e.g. explanation) was set but analysis wasn't.
+    # Read task-specific fields first; fall back to analysis
     task_content_map = {
         "quiz":     state.get("quiz_questions", "") or state.get("analysis", ""),
         "plan":     state.get("study_plan", "") or state.get("analysis", ""),
@@ -460,7 +514,6 @@ def synthesizer_node(state: StudyState) -> dict:
 
     if task_type in task_content_map:
         # For non-QA tasks the agent content IS the final answer (already polished)
-        # Use analysis here since it always holds the display-ready text
         content = state.get("analysis", "") or task_content_map[task_type]
         return {
             "final_answer": content,
@@ -482,8 +535,12 @@ Polish the analysis into a clear, well-structured final answer.
 - End with a brief 'Key Takeaway' summary
 - Be encouraging"""
 
-    final = call_llm(system,
-                     f"Student Question: {query}\n\nDraft Analysis:\n{analysis}\n\nProvide the final polished answer.")
+    try:
+        final = call_llm(system,
+                         f"Student Question: {query}\n\nDraft Analysis:\n{analysis}\n\nProvide the final polished answer.")
+    except Exception as e:
+        logger.warning(f"Synthesizer polish call failed: {e}")
+        final = analysis  # Use unpolished analysis as fallback
 
     return {
         "final_answer": final,
@@ -502,9 +559,7 @@ def route_after_router(state: StudyState) -> str:
         if task in ("qa", "explain", "quiz", "plan", "evaluate"):
             return "planner"
 
-    # FIX: No documents — skip retrieval but still route to the correct agent.
-    # Old code returned "synthesizer" for qa/explain/quiz with no docs,
-    # which skipped the agent entirely and returned an empty answer.
+    # No documents — skip retrieval but still route to the correct agent.
     return _task_to_node(task)
 
 
@@ -572,9 +627,8 @@ def build_graph(vector_store: VectorStore) -> StateGraph:
     # Entry point
     workflow.set_entry_point("task_router")
 
-    # FIX: all valid task node destinations must be listed in every
-    # conditional_edges map — previously "evaluate_agent" was missing from
-    # the task_router map, causing a KeyError at runtime.
+    # All valid task node destinations must be listed in every
+    # conditional_edges map
     all_agent_destinations = {
         "planner":        "planner",
         "qa_agent":       "qa_agent",

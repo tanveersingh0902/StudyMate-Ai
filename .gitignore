@@ -1,7 +1,6 @@
-﻿# Virtual environment
+# Virtual environment
 venv3/
 venv/
-.env/
 
 # Python cache
 __pycache__/
@@ -15,8 +14,9 @@ vector_store/
 .DS_Store
 Thumbs.db
 
-# VS Code settings
+# IDE settings
 .vscode/
+.idea/
 
-# Environment variables (contains API keys - never commit!)
+# Environment variables (contains API keys — never commit!)
 .env

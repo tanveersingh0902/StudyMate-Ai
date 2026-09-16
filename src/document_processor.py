@@ -66,7 +66,11 @@ class DocumentProcessor:
             tmp.write(file_bytes)
             tmp_path = tmp.name
         try:
-            return self.load_file(tmp_path)
+            chunks = self.load_file(tmp_path)
+            # Override source metadata with the original filename (not the temp path)
+            for chunk in chunks:
+                chunk.metadata["source"] = file_name
+            return chunks
         finally:
             os.unlink(tmp_path)
 

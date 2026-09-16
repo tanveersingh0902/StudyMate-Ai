@@ -13,7 +13,7 @@ Features:
   6. Submit answers for AI evaluation
   7. Tracks your learning progress across the session
   8. Human-in-the-Loop approval for study plans
-  9. Supports both Groq (LLaMA) and Google Gemini models
+  9. Supports both Groq (GPT-OSS) and Google Gemini models
   10. Streams agent responses live
 
 """
@@ -32,16 +32,298 @@ from src.llm_factory import get_provider_name
 # ── Page Config ───────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="StudyMate AI",
+    page_title="StudyMate AI — Smart Study Assistant",
     page_icon="🎓",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
+
+# ── Premium Dark-Mode CSS ─────────────────────────────────────────────────────
 
 st.markdown("""
 <style>
-    .stChatMessage { border-radius: 12px; }
-    .study-badge { background: #1f77b4; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
-    .metric-card { background: #f0f2f6; padding: 10px; border-radius: 8px; margin: 4px; }
+/* ── Import Premium Font ───────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Global Resets ─────────────────────────────────────────── */
+*, *::before, *::after { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important; }
+
+/* ── Glassmorphism Card ────────────────────────────────────── */
+.glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 20px 24px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    margin-bottom: 16px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.glass-card:hover {
+    border-color: rgba(139, 92, 246, 0.25);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.08);
+}
+
+/* ── Gradient Header ───────────────────────────────────────── */
+.gradient-header {
+    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #10b981 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.gradient-sub {
+    background: linear-gradient(90deg, #a78bfa 0%, #67e8f9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+/* ── Sidebar Styling ───────────────────────────────────────── */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, rgba(15, 15, 30, 0.98) 0%, rgba(10, 10, 25, 0.99) 100%) !important;
+    border-right: 1px solid rgba(139, 92, 246, 0.15) !important;
+}
+
+section[data-testid="stSidebar"] .stSelectbox > div > div {
+    border-color: rgba(139, 92, 246, 0.3) !important;
+    border-radius: 10px !important;
+    transition: border-color 0.3s ease !important;
+}
+section[data-testid="stSidebar"] .stSelectbox > div > div:hover {
+    border-color: rgba(139, 92, 246, 0.6) !important;
+}
+
+/* ── Quick Action Buttons ──────────────────────────────────── */
+div.stButton > button {
+    background: rgba(139, 92, 246, 0.08) !important;
+    border: 1px solid rgba(139, 92, 246, 0.25) !important;
+    border-radius: 12px !important;
+    color: #e2e8f0 !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+    padding: 10px 16px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    letter-spacing: 0.2px !important;
+}
+div.stButton > button:hover {
+    background: rgba(139, 92, 246, 0.2) !important;
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    transform: translateY(-2px) !important;
+    color: #f8fafc !important;
+}
+div.stButton > button:active {
+    transform: translateY(0px) !important;
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Primary button variant */
+div.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+div.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%) !important;
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.3), 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ── Chat Messages ─────────────────────────────────────────── */
+.stChatMessage {
+    border-radius: 16px !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding: 16px !important;
+    margin-bottom: 12px !important;
+    transition: border-color 0.3s ease !important;
+}
+.stChatMessage:hover {
+    border-color: rgba(139, 92, 246, 0.15) !important;
+}
+
+/* ── Chat Input ────────────────────────────────────────────── */
+.stChatInput > div {
+    border-radius: 14px !important;
+    border: 1px solid rgba(139, 92, 246, 0.25) !important;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+.stChatInput > div:focus-within {
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* ── Metric Cards ──────────────────────────────────────────── */
+div[data-testid="stMetric"] {
+    background: rgba(139, 92, 246, 0.06);
+    border: 1px solid rgba(139, 92, 246, 0.12);
+    border-radius: 12px;
+    padding: 12px 16px;
+    transition: all 0.3s ease;
+}
+div[data-testid="stMetric"]:hover {
+    border-color: rgba(139, 92, 246, 0.3);
+    background: rgba(139, 92, 246, 0.1);
+}
+div[data-testid="stMetric"] label {
+    color: #94a3b8 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    font-weight: 600 !important;
+}
+div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+    color: #e2e8f0 !important;
+    font-weight: 700 !important;
+}
+
+/* ── Expander ──────────────────────────────────────────────── */
+.streamlit-expanderHeader {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+}
+.streamlit-expanderHeader:hover {
+    background: rgba(139, 92, 246, 0.08) !important;
+    border-color: rgba(139, 92, 246, 0.2) !important;
+}
+
+/* ── Slider ────────────────────────────────────────────────── */
+.stSlider > div > div > div > div {
+    background: linear-gradient(90deg, #8b5cf6, #06b6d4) !important;
+}
+
+/* ── File Uploader ─────────────────────────────────────────── */
+section[data-testid="stFileUploader"] {
+    border: 1px dashed rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px !important;
+    transition: border-color 0.3s ease !important;
+}
+section[data-testid="stFileUploader"]:hover {
+    border-color: rgba(139, 92, 246, 0.6) !important;
+}
+
+/* ── Dividers ──────────────────────────────────────────────── */
+hr {
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.2), transparent) !important;
+    margin: 20px 0 !important;
+}
+
+/* ── Status Badges ─────────────────────────────────────────── */
+.task-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+.task-badge-qa       { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
+.task-badge-explain  { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+.task-badge-quiz     { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+.task-badge-plan     { background: rgba(139,92,246,0.15); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.3); }
+.task-badge-evaluate { background: rgba(236,72,153,0.15); color: #f9a8d4; border: 1px solid rgba(236,72,153,0.3); }
+
+/* ── Trace Steps ───────────────────────────────────────────── */
+.trace-step {
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 3px solid rgba(139, 92, 246, 0.4);
+    padding: 10px 16px;
+    margin: 8px 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+.trace-step:hover {
+    background: rgba(139, 92, 246, 0.06);
+    border-left-color: rgba(139, 92, 246, 0.8);
+}
+
+/* ── Progress Indicator ────────────────────────────────────── */
+.doc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    color: #6ee7b7;
+    margin: 2px 4px 2px 0;
+}
+
+/* ── Footer ────────────────────────────────────────────────── */
+.app-footer {
+    text-align: center;
+    color: #475569;
+    font-size: 0.75rem;
+    padding: 24px 0 12px;
+    border-top: 1px solid rgba(139, 92, 246, 0.1);
+    margin-top: 32px;
+    letter-spacing: 0.3px;
+}
+.app-footer a {
+    color: #8b5cf6;
+    text-decoration: none;
+}
+
+/* ── Section Headers ───────────────────────────────────────── */
+.section-header {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
+
+/* ── Success/Warning/Error Alerts ──────────────────────────── */
+.stAlert > div {
+    border-radius: 12px !important;
+    border: none !important;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────── */
+.stTabs [data-baseweb="tab"] {
+    border-radius: 10px 10px 0 0 !important;
+    font-weight: 500 !important;
+}
+
+/* ── Pulse Animation for Loading ───────────────────────────── */
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.2); }
+    50%      { box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+}
+.loading-active {
+    animation: pulse-glow 2s infinite;
+}
+
+/* ── Hide Streamlit Defaults ───────────────────────────────── */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -68,6 +350,8 @@ def _init_session():
         st.session_state.pending_plan = ""
     if "last_task_type" not in st.session_state:
         st.session_state.last_task_type = ""
+    if "processing" not in st.session_state:
+        st.session_state.processing = False
 
 
 _init_session()
@@ -76,18 +360,23 @@ _init_session()
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.title("🎓 StudyMate AI")
-    st.caption("Agentic Academic Research & Study Planning Assistant")
+    # Sidebar header
+    st.markdown("""
+    <div style="text-align:center; padding: 8px 0 4px;">
+        <div class="gradient-header" style="font-size:1.6rem;">🎓 StudyMate AI</div>
+        <div class="gradient-sub">Agentic Academic Research & Study Planning</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
     # ── LLM Provider Selection ─────────────────────────────────────────────────
-    st.subheader("🤖 AI Model")
+    st.markdown('<div class="section-header">🤖 AI Model</div>', unsafe_allow_html=True)
     provider = st.selectbox(
         "LLM Provider",
         ["groq", "gemini"],
         index=0,
-        help="Groq = free LLaMA models | Gemini = Google's AI model",
+        help="Groq = GPT-OSS models on Groq LPUs | Gemini = Google's latest AI models",
     )
     Config.LLM_PROVIDER = provider
 
@@ -101,8 +390,6 @@ with st.sidebar:
         if api_key:
             Config.GROQ_API_KEY = api_key
 
-        # GPT-OSS models are OpenAI's open-weight models hosted on Groq's
-        # LPU hardware — these are the current production model IDs on Groq.
         groq_model = st.selectbox(
             "Groq Model",
             [
@@ -110,6 +397,7 @@ with st.sidebar:
                 "openai/gpt-oss-20b",    # faster/cheaper — 20B params, ~1000 t/s
             ],
             index=0,
+            help="GPT-OSS-120B = flagship quality | GPT-OSS-20B = faster responses",
         )
         Config.GROQ_MODEL = groq_model
         Config.LLM_MODEL = groq_model
@@ -124,7 +412,6 @@ with st.sidebar:
         if api_key:
             Config.GEMINI_API_KEY = api_key
 
-        # Confirmed stable Gemini 3.x Flash endpoints (Google AI docs, Aug 2026)
         gemini_model = st.selectbox(
             "Gemini Model",
             [
@@ -133,16 +420,19 @@ with st.sidebar:
                 "gemini-3.5-flash",   # legacy — high-throughput baseline
             ],
             index=0,
+            help="Gemini 3.7 Flash = latest & best | 3.6/3.5 = previous generations",
         )
         Config.GEMINI_MODEL = gemini_model
 
     if Config.get_active_api_key():
         st.success(f"✅ {get_provider_name()}")
+    else:
+        st.warning("⚠️ Enter your API key to get started")
 
     st.divider()
 
     # ── Study Preferences ──────────────────────────────────────────────────────
-    st.subheader("📚 Study Preferences")
+    st.markdown('<div class="section-header">📚 Study Preferences</div>', unsafe_allow_html=True)
 
     difficulty = st.select_slider(
         "Your Level",
@@ -154,7 +444,7 @@ with st.sidebar:
     st.divider()
 
     # ── Document Upload ────────────────────────────────────────────────────────
-    st.subheader("📄 Upload Study Material")
+    st.markdown('<div class="section-header">📄 Upload Study Material</div>', unsafe_allow_html=True)
     uploaded_files = st.file_uploader(
         "PDFs, Notes, Textbooks (PDF / TXT / DOCX / MD)",
         type=["pdf", "txt", "docx", "md"],
@@ -164,25 +454,36 @@ with st.sidebar:
     if st.button("📥 Index Study Material", use_container_width=True) and uploaded_files:
         processor = DocumentProcessor()
         total_chunks = 0
+        new_files = 0
         with st.spinner("Processing and embedding study material…"):
             for file in uploaded_files:
                 if file.name not in st.session_state.docs_loaded:
-                    chunks = processor.load_from_bytes(file.read(), file.name)
-                    st.session_state.vector_store.add_documents(chunks)
-                    total_chunks += len(chunks)
-                    st.session_state.docs_loaded.append(file.name)
-                    st.session_state.student_profile.add_topic_studied(file.name)
-        st.success(f"✅ Indexed {total_chunks} chunks from {len(uploaded_files)} file(s).")
+                    try:
+                        chunks = processor.load_from_bytes(file.read(), file.name)
+                        st.session_state.vector_store.add_documents(chunks)
+                        total_chunks += len(chunks)
+                        new_files += 1
+                        st.session_state.docs_loaded.append(file.name)
+                        st.session_state.student_profile.add_topic_studied(file.name)
+                    except Exception as e:
+                        st.error(f"❌ Failed to process {file.name}: {e}")
+        if new_files > 0:
+            st.success(f"✅ Indexed **{total_chunks}** chunks from **{new_files}** new file(s).")
+        elif uploaded_files:
+            st.info("ℹ️ All files already indexed.")
 
     if st.session_state.docs_loaded:
         st.markdown("**Loaded material:**")
         for name in st.session_state.docs_loaded:
-            st.markdown(f"- 📄 {name}")
+            st.markdown(
+                f'<span class="doc-chip">📄 {name}</span>',
+                unsafe_allow_html=True,
+            )
 
     st.divider()
 
     # ── Student Progress ───────────────────────────────────────────────────────
-    st.subheader("📊 Your Progress")
+    st.markdown('<div class="section-header">📊 Your Progress</div>', unsafe_allow_html=True)
     profile = st.session_state.student_profile
     col1, col2 = st.columns(2)
     with col1:
@@ -215,24 +516,34 @@ with st.sidebar:
         st.session_state.docs_loaded = []
         st.session_state.hitl_pending = False
         st.session_state.pending_plan = ""
+        st.session_state.processing = False
+        Config.reset()
         st.rerun()
 
 
 # ── Main Area ─────────────────────────────────────────────────────────────────
 
-st.title("🎓 StudyMate AI")
-st.caption(
-    "Powered by LangGraph · LangChain · Groq LLaMA / Google Gemini · FAISS · sentence-transformers"
-)
+# Header
+st.markdown("""
+<div style="margin-bottom: 8px;">
+    <div class="gradient-header">🎓 StudyMate AI</div>
+    <div class="gradient-sub" style="font-size: 0.9rem;">
+        Powered by LangGraph · LangChain · Groq GPT-OSS / Google Gemini · FAISS · sentence-transformers
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ── Quick Action Buttons ──────────────────────────────────────────────────────
-st.markdown("**Quick Actions:**")
+st.markdown("""
+<div style="margin: 12px 0 4px;">
+    <span style="font-weight: 600; color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">
+        Quick Actions
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
 qa_col, ex_col, quiz_col, plan_col, eval_col = st.columns(5)
 
-# FIX: initialise quick_query BEFORE the button blocks so it is always
-# defined by the time we reach `if quick_query and not user_query` below.
-# The original code only set it inside button if-blocks, causing a NameError
-# if the page loaded without any button being pressed.
 quick_query = None
 
 with qa_col:
@@ -258,22 +569,39 @@ col_chat, col_trace = st.columns([3, 2])
 # ── Chat Column ───────────────────────────────────────────────────────────────
 
 with col_chat:
-    st.subheader("💬 Study Chat")
+    st.markdown('<div class="section-header">💬 Study Chat</div>', unsafe_allow_html=True)
 
     # Render chat history
     for role, content, task in st.session_state.chat_history:
         with st.chat_message(role):
             if task and role == "assistant":
-                task_icons = {
-                    "qa": "❓", "explain": "💡", "quiz": "📝",
-                    "plan": "📅", "evaluate": "✅"
+                task_badges = {
+                    "qa":       ("❓", "QA", "task-badge-qa"),
+                    "explain":  ("💡", "EXPLAIN", "task-badge-explain"),
+                    "quiz":     ("📝", "QUIZ", "task-badge-quiz"),
+                    "plan":     ("📅", "PLAN", "task-badge-plan"),
+                    "evaluate": ("✅", "EVALUATE", "task-badge-evaluate"),
                 }
-                st.caption(f"{task_icons.get(task, '🤖')} {task.upper()} Mode")
+                icon, label, css_class = task_badges.get(task, ("🤖", task.upper(), "task-badge-qa"))
+                st.markdown(
+                    f'<span class="task-badge {css_class}">{icon} {label}</span>',
+                    unsafe_allow_html=True,
+                )
             st.markdown(content)
 
     # HITL Checkpoint — show approval UI if a plan is pending
     if st.session_state.hitl_pending:
-        st.warning("⚠️ **Human Approval Required** — Please review the study plan above.")
+        st.markdown("""
+        <div class="glass-card" style="border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.05);">
+            <div style="font-weight: 600; color: #fcd34d; margin-bottom: 8px;">
+                ⚠️ Human Approval Required
+            </div>
+            <div style="color: #94a3b8; font-size: 0.85rem;">
+                Please review the study plan above and approve or request changes.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
         h_col1, h_col2 = st.columns(2)
         with h_col1:
             if st.button("✅ Approve Plan", use_container_width=True, type="primary"):
@@ -302,7 +630,12 @@ with col_chat:
     if user_query:
         # Validate API key
         if not Config.get_active_api_key():
-            st.error("⛔ Please enter your API key in the sidebar.")
+            st.error("⛔ Please enter your API key in the sidebar to get started.")
+            st.stop()
+
+        # Validate non-empty query
+        if not user_query.strip():
+            st.warning("Please enter a question or request.")
             st.stop()
 
         # Show user message
@@ -363,8 +696,8 @@ with col_chat:
                         if node_name == "synthesizer" and updates.get("final_answer"):
                             final_answer = updates["final_answer"]
 
-                        # FIX: HITL detection — check hitl_approved key is
-                        # present AND explicitly False (not just falsy/absent)
+                        # HITL detection — check hitl_approved key is
+                        # present AND explicitly False
                         if (
                             node_name == "plan_agent"
                             and "hitl_approved" in updates
@@ -374,15 +707,16 @@ with col_chat:
 
         except Exception as e:
             st.error(f"⛔ Agent error: {e}")
+            # Still save traces so user can debug
+            st.session_state.agent_traces = traces
             st.stop()
 
         st.session_state.agent_traces = traces
 
         # Fallback: if streaming didn't surface a final_answer, pull the last
-        # meaningful trace content (strip the **[NODE]** prefix first).
+        # meaningful trace content
         if not final_answer and traces:
             for trace in reversed(traces):
-                # Remove the bold node prefix added above
                 content = trace.split("] ", 1)[-1].strip() if "] " in trace else trace
                 if content and not content.startswith("**["):
                     final_answer = content
@@ -391,10 +725,20 @@ with col_chat:
         if not final_answer:
             final_answer = "I processed your request. Please check the agent trace for details."
 
-        # Display final answer
+        # Display final answer with task badge
         with st.chat_message("assistant"):
-            task_icons = {"qa": "❓", "explain": "💡", "quiz": "📝", "plan": "📅", "evaluate": "✅"}
-            st.caption(f"{task_icons.get(detected_task, '🤖')} {detected_task.upper()} Mode")
+            task_badges = {
+                "qa":       ("❓", "QA", "task-badge-qa"),
+                "explain":  ("💡", "EXPLAIN", "task-badge-explain"),
+                "quiz":     ("📝", "QUIZ", "task-badge-quiz"),
+                "plan":     ("📅", "PLAN", "task-badge-plan"),
+                "evaluate": ("✅", "EVALUATE", "task-badge-evaluate"),
+            }
+            icon, label, css_class = task_badges.get(detected_task, ("🤖", detected_task.upper(), "task-badge-qa"))
+            st.markdown(
+                f'<span class="task-badge {css_class}">{icon} {label}</span>',
+                unsafe_allow_html=True,
+            )
             st.markdown(final_answer)
 
         st.session_state.chat_history.append(("assistant", final_answer, detected_task))
@@ -409,17 +753,27 @@ with col_chat:
 # ── Trace Column ──────────────────────────────────────────────────────────────
 
 with col_trace:
-    st.subheader("🔍 Agent Trace")
+    st.markdown('<div class="section-header">🔍 Agent Trace</div>', unsafe_allow_html=True)
 
     if st.session_state.agent_traces:
         with st.expander("Show last run trace", expanded=True):
             for trace in st.session_state.agent_traces:
-                st.markdown(trace)
-                st.divider()
+                st.markdown(
+                    f'<div class="trace-step">{trace}</div>',
+                    unsafe_allow_html=True,
+                )
     else:
-        st.info("Agent steps will appear here after your first query.")
+        st.markdown("""
+        <div class="glass-card" style="text-align: center; padding: 32px 24px;">
+            <div style="font-size: 2rem; margin-bottom: 8px;">🔬</div>
+            <div style="color: #64748b; font-size: 0.85rem;">
+                Agent steps will appear here after your first query.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.subheader("🧠 Session Memory")
+    st.markdown('<div class="section-header" style="margin-top: 20px;">🧠 Session Memory</div>', unsafe_allow_html=True)
+
     mem = st.session_state.memory
     st.metric("Conversation Turns", mem.turn_count)
 
@@ -427,7 +781,7 @@ with col_trace:
         with st.expander("Conversation context"):
             st.text(mem.get_context())
 
-    st.subheader("👤 Student Profile")
+    st.markdown('<div class="section-header" style="margin-top: 20px;">👤 Student Profile</div>', unsafe_allow_html=True)
     p = st.session_state.student_profile
     with st.expander("View profile", expanded=False):
         st.text(p.get_summary())
@@ -455,8 +809,8 @@ with st.expander("📖 How to use StudyMate AI"):
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown(
-    "<div style='text-align:center; color:gray; font-size:12px'>"
-    "NIELIT Agentic AI Internship Project · StudyMate AI · Multi-Agent Academic Assistant"
-    "</div>",
+    '<div class="app-footer">'
+    '🎓 NIELIT Agentic AI Internship Project · <strong>StudyMate AI</strong> · Multi-Agent Academic Assistant'
+    '</div>',
     unsafe_allow_html=True,
 )

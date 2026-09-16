@@ -77,3 +77,12 @@ class Config:
                     "Get a free key at https://console.groq.com and add it to .env"
                 )
         return True
+
+    @classmethod
+    def reset(cls):
+        """Reset mutable settings to their defaults (used by Clear Session)."""
+        cls.MAX_RETRIEVAL_DOCS = int(os.getenv("MAX_RETRIEVAL_DOCS", "5"))
+        cls.MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "3"))
+        cls.TEMPERATURE = float(os.getenv("TEMPERATURE", "0.1"))
+        cls.QUIZ_QUESTION_COUNT = 5
+        cls.STUDY_PLAN_DAYS = 7

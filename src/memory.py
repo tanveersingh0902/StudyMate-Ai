@@ -7,9 +7,12 @@ Maintains:
   - Progress tracking (topics studied, quiz scores)
 """
 
+import logging
 from typing import List, Dict, Any
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from .config import Config
+
+logger = logging.getLogger(__name__)
 
 
 class StudentProfile:
@@ -151,5 +154,7 @@ class ConversationMemory:
                 temperature=0.0,
             )
             self._summary = (self._summary + " " + summary_text).strip() if self._summary else summary_text
-        except Exception:
-            self._summary = formatted[:500] + "…"
+        except Exception as exc:
+            # Graceful fallback: keep a truncated raw text instead of crashing
+            logger.warning(f"Memory compression LLM call failed: {exc}")
+            self._summary = (self._summary + " " + formatted[:500] + "…").strip()

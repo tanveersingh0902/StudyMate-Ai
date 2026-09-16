@@ -1,7 +1,7 @@
 # 🎓 StudyMate AI
 ### NIELIT Agentic AI Internship Project
 
-A production-ready **multi-agent AI system** that acts as a personalised academic research and study planning assistant, using **LangGraph**, **RAG**, and your choice of **Groq (LLaMA)** or **Google Gemini**.
+A production-ready **multi-agent AI system** that acts as a personalised academic research and study planning assistant, using **LangGraph**, **RAG**, and your choice of **Groq (GPT-OSS)** or **Google Gemini**.
 
 ---
 
@@ -46,7 +46,7 @@ RETRIEVER (FAISS vector search on your uploaded study material)
 |-----------|-----------|
 | Agent Orchestration | LangGraph |
 | LLM Framework | LangChain |
-| Language Models | Groq LLaMA-3.3-70B **or** Google Gemini-1.5-Flash |
+| Language Models | Groq GPT-OSS-120B / GPT-OSS-20B **or** Google Gemini 3.7 Flash |
 | Embeddings | HuggingFace sentence-transformers (local, free) |
 | Vector Store | FAISS |
 | UI | Streamlit |
@@ -101,7 +101,16 @@ streamlit run app.py
 
 ---
 
+## 🔧 Troubleshooting
 
+| Issue | Fix |
+|-------|-----|
+| `GROQ_API_KEY is missing` | Add your key in the sidebar or `.env` file |
+| `Model not found` error | Check your API key is valid and the model ID is correct |
+| `Rate limit` / `429` error | The app auto-retries with backoff; wait a few seconds |
+| Quiz JSON parsing error | The app shows raw quiz text as fallback — try again |
+| Slow first startup | The embedding model (~90 MB) downloads on first run |
+| `langchain-google-genai not installed` | Run `pip install langchain-google-genai` |
 
 ---
 
@@ -109,14 +118,15 @@ streamlit run app.py
 
 ```
 studymate-ai/
-├── app.py                    # Streamlit UI
+├── app.py                    # Streamlit UI (premium dark-mode design)
 ├── requirements.txt
-├── .env.example
+├── .env.example              # Template environment config
+├── .env                      # Your API keys (git-ignored)
 ├── README.md
 └── src/
     ├── __init__.py
     ├── config.py             # Config for Groq + Gemini + all settings
-    ├── llm_factory.py        # Unified LLM factory (Groq / Gemini)
+    ├── llm_factory.py        # Unified LLM factory with retry logic
     ├── document_processor.py # File loading & chunking
     ├── vector_store.py       # FAISS + HuggingFace embeddings
     ├── graph.py              # LangGraph 8-agent workflow

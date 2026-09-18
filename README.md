@@ -1,5 +1,4 @@
 # 🎓 StudyMate AI
-### NIELIT Agentic AI Internship Project
 
 A production-ready **multi-agent AI system** that acts as a personalised academic research and study planning assistant, using **LangGraph**, **RAG**, and your choice of **Groq (GPT-OSS)** or **Google Gemini**.
 

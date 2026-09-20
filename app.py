@@ -321,6 +321,23 @@ hr {
     animation: pulse-glow 2s infinite;
 }
 
+/* ── Force Dark Mode / Remove Light Mode Toggle ──────── */
+:root { color-scheme: dark !important; }
+
+/* Hide the theme‑settings section inside the Settings dialog */
+div[data-testid="stThemeSettings"],
+div[data-testid="stTheme"],
+[data-testid="stAppViewBlockContainer"] .stThemeSettings,
+div[class*="ThemeSettings"],
+section[data-testid="stSidebarUserContent"] div[data-testid="stTheme"] {
+    display: none !important;
+}
+
+/* Also hide the Streamlit light/dark toggle radio buttons in settings */
+div[data-baseweb="radio"] label:has(span:is([data-testid="stThemeLight"], [data-testid="stMarkdownContainer"])) {
+    display: none !important;
+}
+
 /* ── Hide Streamlit Defaults ───────────────────────────────── */
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }

@@ -445,6 +445,10 @@ with st.sidebar:
         st.success(f"✅ {get_provider_name()}")
     else:
         st.warning("⚠️ Enter your API key to get started")
+        st.error(
+            f"⚠️ No {provider.upper()} API key found. "
+            f"Add it to Streamlit secrets or your .env file."
+        )
 
     st.divider()
 
@@ -648,6 +652,7 @@ with col_chat:
         # Validate API key
         if not Config.get_active_api_key():
             st.error("⛔ Please enter your API key in the sidebar to get started.")
+            st.error("⛔ API key not configured. Please add your API key to Streamlit secrets or your .env file.")
             st.stop()
 
         # Validate non-empty query

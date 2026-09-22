@@ -17,17 +17,33 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _get_secret(key: str, default: str = "") -> str:
+    """Read a config value from Streamlit secrets first, then env vars."""
+    try:
+        import streamlit as st
+        if key in st.secrets:
+            return str(st.secrets[key])
+    except Exception:
+        pass
+    return os.getenv(key, default)
+
+
 class Config:
     # ── LLM Provider Selection ────────────────────────────────────────────────
     LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "groq")   # "groq" or "gemini"
+    LLM_PROVIDER: str = _get_secret("LLM_PROVIDER", "groq")   # "groq" or "gemini"
 
     # ── Groq — GPT-OSS models (OpenAI open-weight, hosted on Groq LPUs) ──────
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")   # flagship 120B
+    GROQ_API_KEY: str = _get_secret("GROQ_API_KEY", "")
+    GROQ_MODEL: str = _get_secret("GROQ_MODEL", "openai/gpt-oss-120b")   # flagship 120B
 
     # ── Google Gemini ─────────────────────────────────────────────────────────
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")   # latest stable
+    GEMINI_API_KEY: str = _get_secret("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = _get_secret("GEMINI_MODEL", "gemini-3.7-flash")   # latest stable
 
     # ── Shared LLM Settings ───────────────────────────────────────────────────
     LLM_MODEL: str = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")
@@ -68,6 +84,7 @@ class Config:
             if not cls.GEMINI_API_KEY:
                 raise ValueError(
                     "GEMINI_API_KEY is missing. "
+                    "Add it to Streamlit secrets (on Streamlit Cloud) or your .env file. "
                     "Get a free key at https://aistudio.google.com/app/apikey"
                 )
         else:
@@ -75,6 +92,8 @@ class Config:
                 raise ValueError(
                     "GROQ_API_KEY is missing. "
                     "Get a free key at https://console.groq.com and add it to .env"
+                    "Add it to Streamlit secrets (on Streamlit Cloud) or your .env file. "
+                    "Get a free key at https://console.groq.com"
                 )
         return True
 

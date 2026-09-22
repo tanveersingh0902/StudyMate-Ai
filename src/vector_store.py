@@ -7,7 +7,6 @@ Stores study material chunks as vectors for fast semantic search.
 import os
 from typing import List, Optional
 
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 
@@ -18,16 +17,27 @@ class VectorStore:
     """
     Wraps FAISS + HuggingFace embeddings.
     Provides add_documents() and similarity_search() for the agent pipeline.
+
+    Embedding model is loaded lazily (on first use) to avoid crashing on
+    memory-constrained environments like Streamlit Cloud.
     """
 
     def __init__(self):
-        print("⚙️  Loading embedding model (first run downloads ~90 MB)…")
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name=Config.EMBEDDING_MODEL,
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
-        )
+        self._embeddings = None
         self._store: Optional[FAISS] = None
+
+    @property
+    def embeddings(self):
+        """Lazy-load the embedding model on first access."""
+        if self._embeddings is None:
+            print("⚙️  Loading embedding model (first run downloads ~90 MB)…")
+            from langchain_huggingface import HuggingFaceEmbeddings
+            self._embeddings = HuggingFaceEmbeddings(
+                model_name=Config.EMBEDDING_MODEL,
+                model_kwargs={"device": "cpu"},
+                encode_kwargs={"normalize_embeddings": True},
+            )
+        return self._embeddings
 
     # ── Building the index ────────────────────────────────────────────────────
 

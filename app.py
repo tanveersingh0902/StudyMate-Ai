@@ -400,9 +400,8 @@ with st.sidebar:
     if provider == "groq":
         api_key = st.text_input(
             "Groq API Key",
-            value="",
+            value=Config.GROQ_API_KEY,
             type="password",
-            placeholder="••••••••" if Config.GROQ_API_KEY else "Enter your Groq API key",
             help="Free key at https://console.groq.com",
         )
         if api_key:
@@ -423,9 +422,8 @@ with st.sidebar:
     else:  # Gemini
         api_key = st.text_input(
             "Gemini API Key",
-            value="",
+            value=Config.GEMINI_API_KEY,
             type="password",
-            placeholder="••••••••" if Config.GEMINI_API_KEY else "Enter your Gemini API key",
             help="Free key at https://aistudio.google.com/app/apikey",
         )
         if api_key:

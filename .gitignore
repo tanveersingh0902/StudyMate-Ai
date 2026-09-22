@@ -20,4 +20,3 @@ Thumbs.db
 
 # Environment variables (contains API keys — never commit!)
 .env
-.streamlit/secrets.toml
